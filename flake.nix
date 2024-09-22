@@ -20,6 +20,12 @@
           src = ./.;
 
           vendorHash = "sha256-HIardTZYV2OWfdA0lPhnbcGVjaGYPX8MjK1bzI0+Gec=";
+
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+
+          postFixup = ''
+            wrapProgram $out/bin/ytdtd --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.yt-dlp pkgs.ffmpeg pkgs.imagemagick ]}
+          '';
         };
       in
       {
@@ -30,8 +36,8 @@
           buildInputs = with pkgs; [
             go
             gopls
-            yt-dlp
 
+            yt-dlp
             imagemagick
             ffmpeg
           ];
