@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gosimple/slug"
@@ -45,6 +46,7 @@ type Info struct {
 	Album       string   `json:"album"`
 	Artists     []string `json:"artists"`
 	ReleaseYear int      `json:"release_year"`
+	UploadDate  string   `json:"upload_date"`
 }
 
 type Track struct {
@@ -175,11 +177,16 @@ func createAlbum(albumName string, tracks []Track, srcDir, outputDir string) err
 	}
 
 	for _, track := range tracks {
+		year := track.Info.ReleaseYear
+		if year == 0 {
+			year, _ = strconv.Atoi(track.Info.UploadDate[:4])
+		}
+
 		album.Tracks = append(album.Tracks, TrackMetadata{
 			Num:       utils.ExtractNumber(path.Base(track.Filename)),
 			Name:      track.Info.Track,
 			Artist:    track.Info.Artists[0],
-			Year:      track.Info.ReleaseYear,
+			Year:      year,
 			Tags:      []string{},
 			Genres:    []string{},
 			Featuring: track.Info.Artists[1:],
