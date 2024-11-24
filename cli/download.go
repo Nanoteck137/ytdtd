@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type AlbumMetadata struct {
+type ImportFile struct {
 	Album    string   `json:"album"`
 	Artist   string   `json:"artist"`
 	CoverArt string   `json:"coverArt"`
@@ -150,7 +150,7 @@ func createAlbum(albumName string, tracks []Track, srcDir, outputDir string) err
 		}
 	}
 
-	album := AlbumMetadata{
+	album := ImportFile{
 		Album:    albumName,
 		Artist:   track.Info.Artists[0],
 		CoverArt: "cover.png",
