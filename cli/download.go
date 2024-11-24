@@ -8,37 +8,18 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/gosimple/slug"
 	"github.com/nanoteck137/ytdtd/utils"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 )
 
-type TrackFile struct {
-	Lossless string `toml:"lossless"`
-	Lossy    string `toml:"lossy"`
-}
-
-type TrackMetadata struct {
-	Num       int       `toml:"num"`
-	Name      string    `toml:"name"`
-	Duration  int       `toml:"duration"`
-	Artist    string    `toml:"artist"`
-	Year      int       `toml:"year"`
-	Tags      []string  `toml:"tags"`
-	Genres    []string  `toml:"genres"`
-	Featuring []string  `toml:"featuring"`
-	File      TrackFile `toml:"file,inline"`
-}
-
 type AlbumMetadata struct {
-	Album    string          `toml:"album"`
-	Artist   string          `toml:"artist"`
-	CoverArt string          `toml:"coverart"`
-	Tracks   []TrackMetadata `toml:"tracks"`
+	Album    string   `json:"album"`
+	Artist   string   `json:"artist"`
+	CoverArt string   `json:"coverArt"`
+	Tracks   []string `json:"tracks"`
 }
 
 type Info struct {
@@ -173,35 +154,19 @@ func createAlbum(albumName string, tracks []Track, srcDir, outputDir string) err
 		Album:    albumName,
 		Artist:   track.Info.Artists[0],
 		CoverArt: "cover.png",
-		Tracks:   []TrackMetadata{},
+		Tracks:   []string{},
 	}
 
 	for _, track := range tracks {
-		year := track.Info.ReleaseYear
-		if year == 0 {
-			year, _ = strconv.Atoi(track.Info.UploadDate[:4])
-		}
-
-		album.Tracks = append(album.Tracks, TrackMetadata{
-			Num:       utils.ExtractNumber(path.Base(track.Filename)),
-			Name:      track.Info.Track,
-			Artist:    track.Info.Artists[0],
-			Year:      year,
-			Tags:      []string{},
-			Genres:    []string{},
-			Featuring: track.Info.Artists[1:],
-			File: TrackFile{
-				Lossy: path.Base(track.Filename),
-			},
-		})
+		album.Tracks = append(album.Tracks, path.Base(track.Filename))
 	}
 
-	d, err := toml.Marshal(album)
+	d, err := json.MarshalIndent(album, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = os.WriteFile(path.Join(dest, "album.toml"), d, 0644)
+	err = os.WriteFile(path.Join(dest, "import.json"), d, 0644)
 	if err != nil {
 		return err
 	}
