@@ -75,8 +75,15 @@ var downloadCmd = &cobra.Command{
 }
 
 func download(cwd, url, outputTemplate string) error {
+	exe := "yt-dlp"
+	override := os.Getenv("YT_DLP_OVERRIDE")
+
+	if override != "" {
+		exe = override
+	}
+
 	cmd := exec.Command(
-		"yt-dlp",
+		exe,
 		"-x", "--audio-format", "opus",
 		"--embed-metadata", "--embed-thumbnail",
 		"--write-info-json",
