@@ -15,14 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type ImportFile struct {
-	Album    string   `json:"album"`
-	Artist   string   `json:"artist"`
-	CoverArt string   `json:"coverArt"`
-	Tracks   []string `json:"tracks"`
-}
-
 type Info struct {
+	Title       string   `json:"title"`
 	Track       string   `json:"track"`
 	Album       string   `json:"album"`
 	Artists     []string `json:"artists"`
@@ -103,6 +97,10 @@ func download(cwd, url, outputTemplate string) error {
 	return nil
 }
 
+func downloadVideo(cwd, url string) error {
+	return download(cwd, url, "01. %(title)s.%(ext)s")
+}
+
 func downloadSingle(cwd, url string) error {
 	return download(cwd, url, "01. %(track)s.%(ext)s")
 }
@@ -157,28 +155,47 @@ func createAlbum(albumName string, tracks []Track, srcDir, outputDir string) err
 		}
 	}
 
-	album := ImportFile{
-		Album:    albumName,
-		Artist:   track.Info.Artists[0],
-		CoverArt: "cover.png",
-		Tracks:   []string{},
-	}
-
-	for _, track := range tracks {
-		album.Tracks = append(album.Tracks, path.Base(track.Filename))
-	}
-
-	d, err := json.MarshalIndent(album, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(path.Join(dest, "import.json"), d, 0644)
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+var downloadVideoCmd = &cobra.Command{
+	Use:  "video <YT_URL>",
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		out, _ := cmd.Flags().GetString("output")
+		ytUrl := args[0]
+
+		dname, err := os.MkdirTemp("", "ytdtd")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.RemoveAll(dname)
+
+		err = downloadVideo(dname, ytUrl)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tracks, err := GetTracks(dname)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(tracks) <= 0 {
+			return
+		}
+
+		track := tracks[0]
+		name := track.Info.Track
+		if name == "" {
+			name = track.Info.Title
+		}
+
+		err = createAlbum(name, tracks, dname, out)
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
 }
 
 var downloadSingleCmd = &cobra.Command{
@@ -209,6 +226,12 @@ var downloadSingleCmd = &cobra.Command{
 		}
 
 		track := tracks[0]
+		name := track.Info.Track
+		if name == "" {
+			ext := path.Ext(track.Filename)
+			name = strings.TrimSuffix(track.Filename, ext)
+		}
+
 		err = createAlbum(track.Info.Track, tracks, dname, out)
 		if err != nil {
 			log.Fatal(err)
@@ -252,9 +275,11 @@ var downloadAlbumCmd = &cobra.Command{
 }
 
 func init() {
+	downloadVideoCmd.Flags().StringP("output", "o", ".", "Output Directory")
 	downloadSingleCmd.Flags().StringP("output", "o", ".", "Output Directory")
 	downloadAlbumCmd.Flags().StringP("output", "o", ".", "Output Directory")
 
+	downloadCmd.AddCommand(downloadVideoCmd)
 	downloadCmd.AddCommand(downloadSingleCmd)
 	downloadCmd.AddCommand(downloadAlbumCmd)
 
